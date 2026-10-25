@@ -39,6 +39,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6ed0c95b-9410-4fb8-a48b-5752d92fb0b7"
+      }
+    },
+    "owner": "aklilujemals-team"
   }
 }
