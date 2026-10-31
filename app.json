@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "inventory-management-system",
+    "name": "PrimeStock",
     "slug": "inventory-management-system",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,6 +20,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
@@ -34,7 +35,8 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,
