@@ -1,38 +1,44 @@
 # PrimeStock
 
-PrimeStock is an Expo Router inventory app prototype for general stock products. It includes a welcome screen, dashboard, inventory search and filters, procurement and suppliers, stock intake, point of sale, cart and checkout, customer debts, purchase order drafts, reports, branches, and profile. The import workflow also includes purchase costing, courier arrivals, and bank transfers with receipt selection.
-
-The UI uses NativeWind and Expo SDK 57. It runs with in-memory mock APIs, so no backend or account is needed to explore the flows. Demo transactions reset when the app reloads. English, Amharic, and Afaan Oromo can be selected on the welcome screen or in Profile; the language choice persists on the device.
+PrimeStock is an Expo SDK 57 inventory app for general stock products. It has an Android and web interface for branch inventory, suppliers, receiving, point of sale, customer debts, reports, import purchases, courier arrivals, and bank transfers. The UI uses NativeWind and supports English, Amharic, and Afaan Oromo.
 
 ## Run
 
 ```bash
 nvm use
 npm ci
+cp -n .env.example .env.local
 npm start
 ```
 
-Expo SDK 57 requires Node.js 20.19 or newer; `.nvmrc` selects 20.20.2. `npm start` detects the laptop's LAN address and passes it to Expo, so the Android manifest and QR code point to an address the phone can reach. Keep the phone and laptop on the same Wi-Fi, stop any old Expo server, then scan the **new** QR code in an Expo Go build for SDK 57. If port 8081 is occupied, stop the old server or run `npm start -- --port 8082` and scan that new QR code. Press `w` in the Expo CLI to preview the web version.
+Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local`. The configured project in this workspace is `sbptnsywbankfjwvkzqk`. Expo embeds these public values in the app bundle. Never put a service role key in the app. `.env.local` is ignored by Git.
 
-If LAN detection selects the wrong network interface, run `EXPO_LAN_IP=<laptop-wifi-ip> npm start`. A manifest pointing to `127.0.0.1` cannot be loaded by a physical phone: on the phone that address points back to the phone. See [Expo Go version mismatch guidance](https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/) if the installed Android Expo Go build does not match SDK 57.
+Expo SDK 57 requires Node.js 22.13 or newer; `.nvmrc` selects 24.22.0. `npm start` detects the laptop's LAN address for Android Expo Go. Put the phone and laptop on the same Wi-Fi and scan the fresh QR code with an Expo Go build that supports SDK 57. If LAN detection chooses the wrong interface, run `EXPO_LAN_IP=<laptop-wifi-ip> npm start`. Press `w` for the web preview. [Expo Go compatibility guidance](https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/).
 
-## Project structure
+## Accounts and data
 
-- `src/app/` contains Expo Router screens and the five main tabs.
-- `src/components/ui.tsx` contains shared cards, controls, and product visuals.
-- `src/data/inventoryApi.ts` defines product, sale, debt, intake, and branch types plus the `InventoryApi` contract and in-memory implementation.
-- `src/data/tradeApi.ts` defines import purchases, courier arrivals, bank transfers, cost calculations, and a separate `TradeApi` contract.
-- `src/context/InventoryContext.tsx` holds the current snapshot, selected branch, cart, and actions used by the screens.
-- `src/context/TradeContext.tsx` holds import workflow data and updates inventory when a courier arrival is saved.
-- `src/context/LanguageContext.tsx` stores the selected language and provides English, Amharic, and Afaan Oromo UI translations.
-- `scripts/start-expo-lan.js` selects a reachable local address for Expo Go.
-- `tailwind.config.js`, `babel.config.js`, `metro.config.js`, and `global.css` configure NativeWind.
+Choose **Explore demo** to use in-memory sample data without an account. Demo changes reset when the app reloads. Choose **Sign in** to create an account with a unique phone number and password or to sign in with those credentials. Ethiopian mobile numbers can be entered as `0912345678`, `712345678`, or `+251912345678`; other countries use an international `+` country code. Phone numbers are normalized to international format before Supabase Auth checks uniqueness. Sign-up does not send an SMS or require phone confirmation. A signed-in user gets a private workspace with a default branch. Create suppliers and products first, then receive stock. Sales, debts, reports, imports, arrivals, and transfers use persistent Supabase data. Changing branches loads that branch's products and transactions. An arrival linked to a purchase cannot exceed its remaining quantity. The database updates stock and sales in transactions and limits each user to their own records with row-level security.
 
-## Connect a backend
+The database schema, functions, policies, and private receipt bucket are in `supabase/migrations/202611010001_primestock.sql`. That migration has been applied to the configured Supabase project. For a new project, run:
 
-Create adapters implementing `InventoryApi` and `TradeApi` in `src/data/`, then pass them to `InventoryProvider` and `TradeProvider` in `src/app/_layout.tsx`. The screens consume context, so they do not need to know whether data comes from mock adapters or HTTP endpoints. The adapters cover loading snapshots, receiving stock, creating purchase order drafts, completing sales, settling debts, recording import purchases, logging courier arrivals, and recording bank transfers.
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>
+supabase db push --dry-run
+supabase db push
+```
 
-The mock adapters are process memory only and share one catalog across branches. The receipt picker stores a local cache URI in a mock transfer record; production receipt upload, durable storage, authentication, file import, supplier order delivery, and branch-specific stock require backend services. Language preference is stored locally with AsyncStorage.
+Use that new project's URL and publishable key in `.env.local`. In **Authentication → Providers → Phone** in the Supabase dashboard, enable phone authentication and disable phone confirmations. No SMS provider is needed for this flow. These settings are active on `sbptnsywbankfjwvkzqk`. The equivalent local config is `[auth.sms] enable_signup = true` and `enable_confirmations = false`. Supabase CLI v2.93.0 warns that it will disable phone login without an SMS provider during `supabase config push`, so review its Auth diff before accepting a push. Without an SMS or email recovery channel, forgotten passwords require an administrator to reset the account; users should retain their passwords. Existing email-only Supabase accounts are separate identities: signing up with a new phone account will create a new private workspace rather than transfer their data.
+
+## Project layout
+
+- `src/app/`: Expo Router screens and five tabs.
+- `src/components/`: shared controls, product visuals, and trade status messages.
+- `src/context/`: authentication, language, inventory, and trade state.
+- `src/data/inventoryApi.ts` and `src/data/tradeApi.ts`: data contracts and demo adapters.
+- `src/data/supabase*.ts`: Supabase client and signed-in adapters.
+- `supabase/migrations/`: SQL schema, RPC functions, row-level security, and receipt storage.
+- `scripts/start-expo-lan.js`: LAN address selection for Expo Go.
 
 ## Checks
 
@@ -40,4 +46,12 @@ The mock adapters are process memory only and share one catalog across branches.
 npx expo lint
 npx tsc --noEmit
 npx expo-doctor
+npx expo export --platform android --output-dir /tmp/primestock-android-export
+npx expo export --platform web --output-dir /tmp/primestock-web-export
 ```
+
+These checks verify static code and bundles. Complete a signed-in Android walkthrough on a device before release, including phone sign-up, duplicate number rejection, branch switching, stock intake, checkout, and receipt upload. The profile's notification switch currently affects only the current app session; push notifications and multi-user staff roles are not implemented.
+
+## Android client preview
+
+`eas.json` contains a `preview` profile that builds an internally distributed APK with the public Supabase connection values. Build it with `npx eas-cli@latest build --platform android --profile preview`. Expo provides an install link when the cloud build finishes. The preview APK is a standalone app and does not require Expo Go or a running development server.

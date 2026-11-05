@@ -1,6 +1,8 @@
 import { Chip, FeatureHero, Icon, IconButton, MetricCard, Page, SectionTitle, StatusBadge, Surface, Text } from "@/components/ui";
 import { useInventory } from "@/context/InventoryContext";
+import { useAuth } from "@/context/AuthContext";
 import { money, stockStatus } from "@/data/inventoryApi";
+import { salesForPeriod } from "@/data/reportUtils";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -12,33 +14,39 @@ const chartValues: Record<string, number[]> = {
 };
 
 export default function HomeScreen() {
+  const { session, demo } = useAuth();
   const { data, activeBranchId } = useInventory();
   const [period, setPeriod] = useState("Month");
   const branch = data.branches.find((item) => item.id === activeBranchId) ?? data.branches[0];
   const lowStock = data.products.filter((item) => stockStatus(item) === "low-stock").length;
   const outOfStock = data.products.filter((item) => stockStatus(item) === "out-of-stock").length;
   const debtTotal = data.debts.filter((item) => !item.paid).reduce((total, item) => total + item.amount, 0);
+  const reportPeriod = period === "Week" ? "Weekly" : period === "Year" ? "Annual" : "Monthly";
+  const recentSales = salesForPeriod(data.sales, reportPeriod).slice(0, 8).reverse();
+  const maxSale = Math.max(...recentSales.map((item) => item.total), 1);
+  const bars = demo ? chartValues[period] : recentSales.map((item) => Math.max(5, Math.round(item.total / maxSale * 100)));
+  const periodRevenue = data.reportTotals?.[reportPeriod].revenue ?? data.monthlyRevenueBase;
 
   return (
     <Page>
       <View className="mt-3 flex-row items-center justify-between">
         <View className="flex-row items-center gap-2.5">
           <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-brand"><Icon name="cube" size={22} color="#fff" /></View>
-          <View><Text className="text-[17px] font-extrabold tracking-tight text-ink">PrimeStock</Text><Text className="text-[10px] text-muted">Good morning, Aklilu 👋</Text></View>
+          <View><Text className="text-[17px] font-extrabold tracking-tight text-ink">PrimeStock</Text><Text className="text-[10px] text-muted">{session ? "Welcome back 👋" : "Welcome to the demo 👋"}</Text></View>
         </View>
         <View className="flex-row gap-2">
           <IconButton name="notifications-outline" badge={data.debts.filter((item) => !item.paid && item.daysOverdue > 0).length} onPress={() => router.push("/debts")} />
-          <Pressable onPress={() => router.push("/profile")} className="h-10 w-10 items-center justify-center rounded-2xl bg-[#DCEBFF]"><Text className="text-[12px] font-extrabold text-brand">AJ</Text></Pressable>
+          <Pressable onPress={() => router.push("/profile")} className="h-10 w-10 items-center justify-center rounded-2xl bg-[#DCEBFF]"><Text className="text-[12px] font-extrabold text-brand">{session ? "PS" : "DE"}</Text></Pressable>
         </View>
       </View>
 
       <Pressable onPress={() => router.push("/branches")} className="mb-5 mt-5 flex-row items-center gap-3 rounded-2xl border border-line bg-white px-3 py-3">
         <View className="h-9 w-9 items-center justify-center rounded-xl bg-[#E8F1FF]"><Icon name="business-outline" size={18} color="#0869F2" /></View>
-        <View className="flex-1"><Text className="text-[11px] font-bold text-ink">{branch.name}</Text><Text className="mt-0.5 text-[10px] text-muted">Synced just now · {branch.staff} team members</Text></View>
+        <View className="flex-1"><Text className="text-[11px] font-bold text-ink">{branch?.name ?? "Main branch"}</Text><Text className="mt-0.5 text-[10px] text-muted">{demo ? "Preview data" : "Live inventory"} · {branch?.staff ?? 1} team members</Text></View>
         <Icon name="chevron-down" size={17} color="#60738F" />
       </Pressable>
 
-      <FeatureHero eyebrow="Today's sales" title={money(data.todaySalesBase)} detail="You're on track. Keep every sale, item, and payment moving in one place." icon="trending-up-outline" action="Open point of sale" onPress={() => router.push("/sales")} />
+      <FeatureHero eyebrow="Today's sales" title={money(data.todaySalesBase)} detail="Track every sale, item, and payment in one place." icon="trending-up-outline" action="Open point of sale" onPress={() => router.push("/sales")} />
 
       <View className="mt-3 flex-row gap-3">
         <MetricCard title="Items in catalog" value={data.products.length.toLocaleString()} icon="cube-outline" tone="mint" onPress={() => router.push("/inventory")} />
@@ -51,12 +59,12 @@ export default function HomeScreen() {
 
       <SectionTitle title="Sales performance" action="View reports" onAction={() => router.push("/reports")} />
       <Surface className="p-4">
-        <View className="flex-row items-center justify-between"><View><Text className="text-[10px] text-muted">Revenue trend</Text><Text className="mt-1 text-[18px] font-extrabold text-ink">{money(data.monthlyRevenueBase)}</Text></View><StatusBadge label="↗ 12.8%" tone="green" /></View>
+        <View className="flex-row items-center justify-between"><View><Text className="text-[10px] text-muted">Revenue trend</Text><Text className="mt-1 text-[18px] font-extrabold text-ink">{money(periodRevenue)}</Text></View>{demo ? <StatusBadge label="Sample" tone="blue" /> : null}</View>
         <View className="mt-4 flex-row gap-2">{["Week", "Month", "Year"].map((item) => <Chip key={item} title={item} selected={period === item} onPress={() => setPeriod(item)} />)}</View>
         <View className="mt-6 h-[130px] flex-row items-end justify-between border-b border-line px-1">
-          {chartValues[period].map((height, index) => <View key={index} style={{ height: `${height}%` }} className={`w-[9%] rounded-t-lg ${index === chartValues[period].length - 1 ? "bg-brand" : "bg-[#BFD8FF]"}`} />)}
+          {bars.map((height, index) => <View key={index} style={{ height: `${height}%` }} className={`w-[9%] rounded-t-lg ${index === bars.length - 1 ? "bg-brand" : "bg-[#BFD8FF]"}`} />)}{!demo && !bars.length ? <Text className="mb-12 flex-1 text-center text-[12px] text-muted">No sales in this period yet</Text> : null}
         </View>
-        <View className="mt-2 flex-row justify-between"><Text className="text-[9px] text-muted">Start</Text><Text className="text-[9px] text-muted">Mid period</Text><Text className="text-[9px] text-muted">Today</Text></View>
+        <View className="mt-2 flex-row justify-between"><Text className="text-[9px] text-muted">{demo ? "Start" : "Recent sales"}</Text><Text className="text-[9px] text-muted">{demo ? "Mid period" : ""}</Text><Text className="text-[9px] text-muted">{demo ? "Today" : "Latest"}</Text></View>
       </Surface>
 
       <SectionTitle title="Quick actions" />

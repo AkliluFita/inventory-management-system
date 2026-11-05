@@ -36,10 +36,10 @@ export type TradeSnapshot = {
 };
 
 export interface TradeApi {
-  getSnapshot(): Promise<TradeSnapshot>;
-  createPurchase(input: Omit<ImportPurchase, "id">): Promise<ImportPurchase>;
-  createArrival(input: Omit<CourierArrival, "id">): Promise<CourierArrival>;
-  createTransfer(input: Omit<BankTransfer, "id">): Promise<BankTransfer>;
+  getSnapshot(branchId?: string): Promise<TradeSnapshot>;
+  createPurchase(input: Omit<ImportPurchase, "id">, branchId?: string): Promise<ImportPurchase>;
+  createArrival(input: Omit<CourierArrival, "id">, branchId?: string): Promise<CourierArrival>;
+  createTransfer(input: Omit<BankTransfer, "id">, branchId?: string): Promise<BankTransfer>;
 }
 
 export const landedUnitCost = (purchase: Pick<ImportPurchase, "unitPriceUsd" | "usdRateEtb" | "freightEtb">) =>

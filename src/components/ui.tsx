@@ -1,5 +1,6 @@
 import { Product, StockStatus, money, stockStatus } from "@/data/inventoryApi";
 import { languages, useLanguage } from "@/context/LanguageContext";
+import { goBackOrHome } from "@/data/navigation";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -40,13 +41,13 @@ export function Page({ children, scroll = true, className = "" }: { children: Re
   );
 }
 
-export function TopBar({ title, subtitle, right, back = true }: { title: string; subtitle?: string; right?: ReactNode; back?: boolean }) {
+export function TopBar({ title, subtitle, right, back = true, backToWelcome = false }: { title: string; subtitle?: string; right?: ReactNode; back?: boolean; backToWelcome?: boolean }) {
   const { t } = useLanguage();
   const displayTitle = title.startsWith("Current cart (") ? title.replace("Current cart", t("Current cart")) : title;
   return (
     <View className="mb-6 mt-3 flex-row items-center gap-3">
       {back && (
-        <Pressable onPress={() => router.back()} accessibilityLabel={t("Go back")} className="h-10 w-10 items-center justify-center rounded-2xl bg-white border border-line">
+        <Pressable onPress={() => { if (backToWelcome) { if (router.canGoBack()) router.back(); else router.replace("/"); } else goBackOrHome(); }} accessibilityLabel={t("Go back")} className="h-10 w-10 items-center justify-center rounded-2xl bg-white border border-line">
           <Icon name="arrow-back" size={19} />
         </Pressable>
       )}
@@ -172,15 +173,16 @@ export function FieldLabel({ label, required = false }: { label: string; require
   return <Text className="mb-2 text-[11px] font-semibold text-muted">{label}{required ? <Text className="text-danger"> *</Text> : null}</Text>;
 }
 
-export function InputField({ label, value, onChangeText, placeholder, keyboardType = "default", required = false }: {
+export function InputField({ label, value, onChangeText, placeholder, keyboardType = "default", required = false, secureTextEntry = false, autoCapitalize }: {
   label: string; value: string; onChangeText: (text: string) => void; placeholder?: string;
-  keyboardType?: "default" | "numeric" | "decimal-pad"; required?: boolean;
+  keyboardType?: "default" | "numeric" | "decimal-pad" | "email-address" | "phone-pad" | "number-pad"; required?: boolean;
+  secureTextEntry?: boolean; autoCapitalize?: "none" | "sentences" | "words" | "characters";
 }) {
   const { t } = useLanguage();
   return (
     <View className="mb-4">
       <FieldLabel label={label} required={required} />
-      <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder ? t(placeholder) : undefined} placeholderTextColor="#A2AEC1" keyboardType={keyboardType} className="h-[50px] rounded-2xl border border-line bg-white px-4 text-[13px] text-ink" />
+      <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder ? t(placeholder) : undefined} placeholderTextColor="#A2AEC1" keyboardType={keyboardType} secureTextEntry={secureTextEntry} autoCapitalize={autoCapitalize} className="h-[50px] rounded-2xl border border-line bg-white px-4 text-[13px] text-ink" />
     </View>
   );
 }

@@ -1,4 +1,5 @@
 import { Button, Icon, Page, ProductArt, SectionTitle, Surface, Text, TopBar } from "@/components/ui";
+import { TradeStatus } from "@/components/TradeStatus";
 import { useInventory } from "@/context/InventoryContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTrade } from "@/context/TradeContext";
@@ -14,6 +15,7 @@ export default function ImportsScreen() {
   const total = data.purchases.reduce((sum, item) => sum + totalImportCost(item), 0);
   return <Page>
     <TopBar title="Import purchases" subtitle="Track purchase costs and landed value" />
+    <TradeStatus />
     <Surface className="flex-row items-center gap-4 bg-[#EAF2FF] p-5"><View className="h-12 w-12 items-center justify-center rounded-2xl bg-white"><Icon name="globe-outline" color="#0869F2" /></View><View className="flex-1"><Text className="text-[11px] font-semibold text-muted">Total landed cost</Text><Text className="mt-1 text-[19px] font-extrabold text-ink">{money(total)}</Text><Text className="mt-1 text-[10px] text-muted">{data.purchases.length} {t("purchase records")}</Text></View></Surface>
     <View className="mt-4"><Button title="New import purchase" icon="add" onPress={() => router.push("/new-import")} /></View>
     <SectionTitle title="Purchase history" />

@@ -1,4 +1,4 @@
-export type Category = "Electronics" | "Groceries" | "Home" | "Apparel" | "Supplies" | "Stationery";
+export type Category = string;
 export type StockStatus = "in-stock" | "low-stock" | "out-of-stock";
 export type IntakeStatus = "Received" | "In transit" | "Pending";
 
@@ -52,6 +52,8 @@ export type Sale = { id: string; total: number; date: string; method: "Full paym
 export type PurchaseOrder = { id: string; productId: string; quantity: number; cost: number; date: string; status: "Draft" | "Sent" };
 export type CartLine = { productId: string; quantity: number };
 export type SalePayment = { customerName?: string; amountPaid?: number; saleDate?: string };
+export type ReportPeriod = "Daily" | "Weekly" | "Monthly" | "Annual";
+export type ReportTotals = Record<ReportPeriod, { revenue: number; cost: number }>;
 
 export type InventorySnapshot = {
   products: Product[];
@@ -64,11 +66,16 @@ export type InventorySnapshot = {
   orders: PurchaseOrder[];
   todaySalesBase: number;
   monthlyRevenueBase: number;
+  reportTotals?: ReportTotals;
 };
 
 export interface InventoryApi {
   getSnapshot(branchId?: string): Promise<InventorySnapshot>;
+  createBranch(name: string, city: string): Promise<Branch>;
+  createSupplier(name: string, category: string, phone: string): Promise<Supplier>;
+  createProduct(input: Omit<Product, "id" | "stock" | "icon" | "tint">, branchId: string): Promise<Product>;
   createIntake(input: Omit<Intake, "id" | "date" | "status">): Promise<Intake>;
+  createIntakes(inputs: Omit<Intake, "id" | "date" | "status">[]): Promise<Intake[]>;
   createPurchaseOrder(productId: string, quantity: number): Promise<PurchaseOrder>;
   completeSale(lines: CartLine[], method: Sale["method"], payment?: SalePayment): Promise<Sale>;
   settleDebt(id: string): Promise<void>;
@@ -137,6 +144,10 @@ let database: InventorySnapshot = seed;
 let serial = 2600;
 
 export const initialInventorySnapshot = seed;
+export const emptyInventorySnapshot: InventorySnapshot = {
+  products: [], branches: [], suppliers: [], intakes: [], debts: [],
+  activities: [], sales: [], orders: [], todaySalesBase: 0, monthlyRevenueBase: 0,
+};
 
 const activity = (title: string, detail: string, kind: Activity["kind"]): Activity => ({
   id: `a${++serial}`, title, detail, kind, time: "Just now",
@@ -151,6 +162,21 @@ export const mockInventoryApi: InventoryApi = {
       sales: [...database.sales], orders: [...database.orders],
     };
   },
+  async createBranch(name, city) {
+    const branch: Branch = { id: `b${++serial}`, name, city, items: 0, staff: 1, status: "Active" };
+    database = { ...database, branches: [...database.branches, branch] };
+    return branch;
+  },
+  async createSupplier(name, category, phone) {
+    const supplier: Supplier = { id: `s${++serial}`, name, category, phone, orders: 0, rating: 0 };
+    database = { ...database, suppliers: [...database.suppliers, supplier] };
+    return supplier;
+  },
+  async createProduct(input) {
+    const product: Product = { ...input, id: `p${++serial}`, stock: 0, icon: "cube-outline", tint: "#E8F1FF" };
+    database = { ...database, products: [...database.products, product] };
+    return product;
+  },
   async createIntake(input) {
     const entry: Intake = { ...input, id: `IN-${++serial}`, date: new Date().toISOString().slice(0, 10), status: "Received" };
     const product = database.products.find((item) => item.id === input.productId);
@@ -161,6 +187,11 @@ export const mockInventoryApi: InventoryApi = {
       activities: [activity("New stock intake registered", `${product?.name ?? "Product"} · ${input.quantity} units`, "stock"), ...database.activities],
     };
     return entry;
+  },
+  async createIntakes(inputs) {
+    const entries: Intake[] = [];
+    for (const input of inputs) entries.push(await this.createIntake(input));
+    return entries;
   },
   async createPurchaseOrder(productId, quantity) {
     const product = database.products.find((item) => item.id === productId);

@@ -8,7 +8,7 @@ import { Pressable, View } from "react-native";
 type Draft = Omit<Intake, "id" | "date" | "status">;
 
 export default function NewIntakeScreen() {
-  const { data, createIntake } = useInventory();
+  const { data, createIntakes } = useInventory();
   const [productId, setProductId] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [batch, setBatch] = useState(`BCH-${new Date().getFullYear()}-${String(data.intakes.length + 1).padStart(3, "0")}`);
@@ -22,7 +22,7 @@ export default function NewIntakeScreen() {
   const current = (): Draft | null => {
     const qty = Number(quantity);
     const cost = Number(unitCost);
-    if (!productId || !supplierId || !batch.trim() || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(cost) || cost <= 0) {
+    if (!productId || !supplierId || !batch.trim() || !Number.isInteger(qty) || qty <= 0 || !Number.isFinite(cost) || cost <= 0) {
       setError("Complete every required field with a quantity and cost above zero.");
       return null;
     }
@@ -44,7 +44,7 @@ export default function NewIntakeScreen() {
     if ((productId || quantity || unitCost) && !item) return;
     setSaving(true);
     try {
-      for (const entry of [...queued, ...(item ? [item] : [])]) await createIntake(entry);
+      await createIntakes([...queued, ...(item ? [item] : [])]);
       router.replace({ pathname: "/procurement", params: { created: "1" } });
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save intake."); }
     finally { setSaving(false); }

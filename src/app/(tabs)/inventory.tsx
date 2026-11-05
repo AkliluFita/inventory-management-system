@@ -19,6 +19,8 @@ export default function InventoryScreen() {
   const selected = data.products.find((item) => item.id === selectedId);
   const low = data.products.filter((item) => stockStatus(item) === "low-stock").length;
   const out = data.products.filter((item) => stockStatus(item) === "out-of-stock").length;
+  const reorderProduct = data.products.find((item) => stockStatus(item) === "out-of-stock")
+    ?? data.products.find((item) => stockStatus(item) === "low-stock");
   const categories = ["All categories", ...new Set(data.products.map((item) => item.category))];
   const products = useMemo(() => data.products.filter((item) => {
     const matchesSearch = `${item.name} ${item.sku} ${item.brand} ${item.category}`.toLowerCase().includes(search.toLowerCase());
@@ -30,7 +32,7 @@ export default function InventoryScreen() {
 
   return (
     <Page>
-      <TopBar title="Inventory" subtitle="Know what you have, everywhere" back={false} right={<IconButton name="add" onPress={() => router.push("/new-intake")} />} />
+      <TopBar title="Inventory" subtitle="Know what you have, everywhere" back={false} right={<IconButton name="add" onPress={() => router.push("/new-product")} />} />
       <SearchField value={search} onChangeText={setSearch} placeholder="Search product, SKU, brand..." />
       <View className="mt-4 flex-row gap-3">
         <MetricCard title="Products" value={String(data.products.length)} icon="cube-outline" tone="blue" />
@@ -49,11 +51,11 @@ export default function InventoryScreen() {
         {products.map((product) => <InventoryCard key={product.id} product={product} onPress={() => setSelectedId(product.id)} />)}
         {products.length === 0 ? <Surface className="items-center p-8"><Icon name="search-outline" size={30} color="#9AA6BB" /><Text className="mt-3 text-[13px] font-bold text-ink">No products found</Text><Text className="mt-1 text-[11px] text-muted">Try another search or filter.</Text></Surface> : null}
       </View>
-      <Surface className="mt-5 flex-row items-center gap-3 border-[#FFD6DB] bg-[#FFF2F3] p-4">
+      {reorderProduct ? <Surface className="mt-5 flex-row items-center gap-3 border-[#FFD6DB] bg-[#FFF2F3] p-4">
         <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#FFE1E5]"><Icon name="warning-outline" size={19} color="#E1475A" /></View>
         <View className="flex-1"><Text className="text-[11px] font-bold text-ink">Stock needs attention</Text><Text className="mt-0.5 text-[10px] text-muted">{low + out} products are below their reorder point.</Text></View>
-        <Pressable onPress={() => router.push("/reorder?id=p4")} className="rounded-lg bg-danger px-3 py-2"><Text className="text-[10px] font-bold text-white">Reorder</Text></Pressable>
-      </Surface>
+        <Pressable onPress={() => router.push({ pathname: "/reorder", params: { id: reorderProduct.id } })} className="rounded-lg bg-danger px-3 py-2"><Text className="text-[10px] font-bold text-white">Reorder</Text></Pressable>
+      </Surface> : null}
 
       <Modal visible={!!selected} transparent animationType="slide" onRequestClose={() => setSelectedId(null)}>
         <View className="flex-1 justify-end bg-[#061D43]/40">

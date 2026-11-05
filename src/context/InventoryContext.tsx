@@ -1,11 +1,14 @@
 import {
-  CartLine, Intake, InventoryApi, InventorySnapshot, PurchaseOrder, Sale, SalePayment,
-  initialInventorySnapshot, mockInventoryApi,
+  Branch, CartLine, Intake, InventoryApi, InventorySnapshot, Product, PurchaseOrder, Sale, SalePayment, Supplier,
+  emptyInventorySnapshot, initialInventorySnapshot, mockInventoryApi,
 } from "@/data/inventoryApi";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 type InventoryContextValue = {
   data: InventorySnapshot;
+  loading: boolean;
+  error: string | null;
+  retry: () => Promise<void>;
   activeBranchId: string;
   setActiveBranchId: (id: string) => void;
   cart: CartLine[];
@@ -13,27 +16,63 @@ type InventoryContextValue = {
   changeQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   createIntake: (input: Omit<Intake, "id" | "date" | "status">) => Promise<Intake>;
+  createIntakes: (inputs: Omit<Intake, "id" | "date" | "status">[]) => Promise<Intake[]>;
   createPurchaseOrder: (productId: string, quantity: number) => Promise<PurchaseOrder>;
   completeSale: (method: Sale["method"], payment?: SalePayment) => Promise<Sale>;
   settleDebt: (id: string) => Promise<void>;
+  createBranch: (name: string, city: string) => Promise<Branch>;
+  createSupplier: (name: string, category: string, phone: string) => Promise<Supplier>;
+  createProduct: (input: Omit<Product, "id" | "stock" | "icon" | "tint">) => Promise<Product>;
 };
 
 const InventoryContext = createContext<InventoryContextValue | null>(null);
 
 export function InventoryProvider({ children, api = mockInventoryApi }: { children: React.ReactNode; api?: InventoryApi }) {
-  const [data, setData] = useState<InventorySnapshot>(initialInventorySnapshot);
-  const [activeBranchId, setActiveBranchId] = useState("b1");
+  const [data, setData] = useState<InventorySnapshot>(api === mockInventoryApi ? initialInventorySnapshot : emptyInventorySnapshot);
+  const [activeBranchId, updateActiveBranchId] = useState(api === mockInventoryApi ? "b1" : "");
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const setActiveBranchId = useCallback((id: string) => {
+    if (!id || id === activeBranchId) return;
+    setLoading(true);
+    setError(null);
+    updateActiveBranchId(id);
+    setCart([]);
+  }, [activeBranchId]);
 
   const refresh = useCallback(async () => {
-    setData(await api.getSnapshot(activeBranchId));
+    try {
+      const snapshot = await api.getSnapshot(activeBranchId);
+      setData(snapshot);
+      if (!activeBranchId && snapshot.branches[0]) updateActiveBranchId(snapshot.branches[0].id);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not load inventory.");
+      throw cause;
+    }
   }, [api, activeBranchId]);
 
   useEffect(() => {
     let mounted = true;
-    api.getSnapshot(activeBranchId).then((snapshot) => { if (mounted) setData(snapshot); });
+    api.getSnapshot(activeBranchId).then((snapshot) => {
+      if (mounted) {
+        setData(snapshot);
+        if (!activeBranchId && snapshot.branches[0]) updateActiveBranchId(snapshot.branches[0].id);
+        setError(null);
+      }
+    }).catch((cause) => {
+      if (mounted) setError(cause instanceof Error ? cause.message : "Could not load inventory.");
+    }).finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [api, activeBranchId]);
+
+  const retry = useCallback(async () => {
+    setLoading(true);
+    try { await refresh(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Could not load inventory."); }
+    finally { setLoading(false); }
+  }, [refresh]);
 
   const addToCart = useCallback((productId: string) => {
     setCart((current) => {
@@ -54,32 +93,54 @@ export function InventoryProvider({ children, api = mockInventoryApi }: { childr
 
   const createIntake = useCallback(async (input: Omit<Intake, "id" | "date" | "status">) => {
     const result = await api.createIntake(input);
-    await refresh();
+    await refresh().catch(() => undefined);
+    return result;
+  }, [api, refresh]);
+  const createIntakes = useCallback(async (inputs: Omit<Intake, "id" | "date" | "status">[]) => {
+    const result = await api.createIntakes(inputs);
+    await refresh().catch(() => undefined);
     return result;
   }, [api, refresh]);
 
   const createPurchaseOrder = useCallback(async (productId: string, quantity: number) => {
     const result = await api.createPurchaseOrder(productId, quantity);
-    await refresh();
+    await refresh().catch(() => undefined);
     return result;
   }, [api, refresh]);
 
   const completeSale = useCallback(async (method: Sale["method"], payment?: SalePayment) => {
     const result = await api.completeSale(cart, method, payment);
     setCart([]);
-    await refresh();
+    await refresh().catch(() => undefined);
     return result;
   }, [api, cart, refresh]);
 
   const settleDebt = useCallback(async (id: string) => {
     await api.settleDebt(id);
-    await refresh();
+    await refresh().catch(() => undefined);
   }, [api, refresh]);
 
+  const createBranch = useCallback(async (name: string, city: string) => {
+    const result = await api.createBranch(name, city);
+    setActiveBranchId(result.id);
+    return result;
+  }, [api, setActiveBranchId]);
+  const createSupplier = useCallback(async (name: string, category: string, phone: string) => {
+    const result = await api.createSupplier(name, category, phone);
+    await refresh().catch(() => undefined);
+    return result;
+  }, [api, refresh]);
+  const createProduct = useCallback(async (input: Omit<Product, "id" | "stock" | "icon" | "tint">) => {
+    const result = await api.createProduct(input, activeBranchId);
+    await refresh().catch(() => undefined);
+    return result;
+  }, [api, activeBranchId, refresh]);
+
   const value = useMemo(() => ({
-    data, activeBranchId, setActiveBranchId, cart, addToCart, changeQuantity,
-    clearCart: () => setCart([]), createIntake, createPurchaseOrder, completeSale, settleDebt,
-  }), [data, activeBranchId, cart, addToCart, changeQuantity, createIntake, createPurchaseOrder, completeSale, settleDebt]);
+    data, loading, error, retry, activeBranchId, setActiveBranchId, cart, addToCart, changeQuantity,
+    clearCart: () => setCart([]), createIntake, createIntakes, createPurchaseOrder, completeSale, settleDebt,
+    createBranch, createSupplier, createProduct,
+  }), [data, loading, error, retry, activeBranchId, setActiveBranchId, cart, addToCart, changeQuantity, createIntake, createIntakes, createPurchaseOrder, completeSale, settleDebt, createBranch, createSupplier, createProduct]);
 
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>;
 }

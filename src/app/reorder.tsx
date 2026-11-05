@@ -1,6 +1,7 @@
 import { Button, EmptyState, Icon, Page, ProductArt, SectionTitle, StatusBadge, Surface, TopBar, Text } from "@/components/ui";
 import { useInventory } from "@/context/InventoryContext";
 import { PurchaseOrder, money, stockStatus } from "@/data/inventoryApi";
+import { goBackOrHome } from "@/data/navigation";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -33,7 +34,7 @@ export default function ReorderScreen() {
       <SectionTitle title="Cost estimate" />
       <Surface className="p-5"><View className="flex-row justify-between"><Text className="text-[11px] text-muted">Unit purchase cost</Text><Text className="text-[11px] font-semibold text-ink">{money(product.cost)}</Text></View><View className="mt-4 flex-row justify-between border-t border-line pt-4"><Text className="text-[12px] font-bold text-ink">Estimated total</Text><Text className="text-[20px] font-extrabold text-brand">{money(product.cost * quantity)}</Text></View></Surface>
       {error ? <Text className="mt-4 text-[11px] text-danger">{error}</Text> : null}
-      <View className="mt-8 gap-3"><Button title={busy ? "Creating..." : "Create purchase order"} disabled={busy} onPress={() => void submit()} /><Button title="Cancel" variant="outline" onPress={() => router.back()} /></View>
+      <View className="mt-8 gap-3"><Button title={busy ? "Creating..." : "Create purchase order"} disabled={busy} onPress={() => void submit()} /><Button title="Cancel" variant="outline" onPress={goBackOrHome} /></View>
     </Page>
   );
 }

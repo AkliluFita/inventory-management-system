@@ -1,4 +1,5 @@
 import { Button, Icon, Page, ProductArt, SectionTitle, Surface, Text, TopBar } from "@/components/ui";
+import { TradeStatus } from "@/components/TradeStatus";
 import { useInventory } from "@/context/InventoryContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTrade } from "@/context/TradeContext";
@@ -11,6 +12,7 @@ export default function CourierScreen() {
   const { t } = useLanguage();
   return <Page>
     <TopBar title="Courier arrivals" subtitle="Log incoming goods and update stock" />
+    <TradeStatus />
     <Surface className="flex-row items-center gap-4 bg-[#E4F9F1] p-5"><View className="h-12 w-12 items-center justify-center rounded-2xl bg-white"><Icon name="airplane-outline" color="#079965" /></View><View><Text className="text-[19px] font-extrabold text-ink">{data.arrivals.length}</Text><Text className="text-[11px] text-muted">Recorded arrivals</Text></View></Surface>
     <View className="mt-4"><Button title="Register arrival" icon="add" onPress={() => router.push("/new-arrival")} /></View>
     <SectionTitle title="Arrival history" />

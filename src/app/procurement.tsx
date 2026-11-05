@@ -36,7 +36,7 @@ export default function ProcurementScreen() {
         <View className="gap-3">{intakes.map((item) => <IntakeCard key={item.id} intake={item} />)}</View>
         {intakes.length === 0 ? <Surface className="items-center p-8"><Text className="text-[12px] text-muted">No intakes match your search.</Text></Surface> : null}
       </> : <>
-        <SectionTitle title="Trusted suppliers" action={`${suppliers.length} partners`} />
+        <SectionTitle title="Trusted suppliers" action="Add supplier" onAction={() => router.push("/new-supplier")} />
         <View className="gap-3">{suppliers.map((supplier) => <Surface key={supplier.id} className="p-4"><View className="flex-row items-center gap-3"><View className="h-12 w-12 items-center justify-center rounded-2xl bg-[#E8F1FF]"><Icon name="business-outline" size={22} color="#0869F2" /></View><View className="flex-1"><Text className="text-[12px] font-bold text-ink">{supplier.name}</Text><Text className="mt-1 text-[10px] text-muted">{supplier.category}</Text></View><StatusBadge label={`${supplier.rating} ★`} tone="amber" /></View><View className="mt-4 flex-row justify-between border-t border-line pt-3"><Text className="text-[10px] text-muted">{supplier.orders} fulfilled orders</Text><Text className="text-[10px] font-semibold text-brand">{supplier.phone}</Text></View></Surface>)}</View>
         {suppliers.length === 0 ? <Surface className="items-center p-8"><Text className="text-[12px] text-muted">No suppliers match your search.</Text></Surface> : null}
       </>}

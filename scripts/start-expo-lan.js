@@ -3,8 +3,8 @@ const os = require("node:os");
 const { spawn } = require("node:child_process");
 
 const [major, minor] = process.versions.node.split(".").map(Number);
-if (major < 20 || (major === 20 && minor < 19)) {
-  console.error(`Expo SDK 57 needs Node 20.19 or newer; found ${process.version}. Run "nvm use" in this project, then try again.`);
+if (major < 22 || (major === 22 && minor < 13)) {
+  console.error(`Expo SDK 57 needs Node 22.13 or newer; found ${process.version}. Run "nvm use" in this project, then try again.`);
   process.exit(1);
 }
 
