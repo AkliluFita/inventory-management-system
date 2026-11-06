@@ -1,60 +1,7 @@
-export type ImportPurchase = {
-  id: string;
-  date: string;
-  productId: string;
-  quantity: number;
-  unitPriceUsd: number;
-  usdRateEtb: number;
-  freightEtb: number;
-  supplier: string;
-};
-
-export type CourierArrival = {
-  id: string;
-  date: string;
-  productId: string;
-  quantity: number;
-  courier: string;
-  purchaseId?: string;
-};
-
-export type BankTransfer = {
-  id: string;
-  date: string;
-  amountEtb: number;
-  bank: string;
-  usdRate: number;
-  aedRate: number;
-  remitter: string;
-  receipt?: { name: string; uri: string; size: number; mimeType?: string };
-};
-
-export type TradeSnapshot = {
-  purchases: ImportPurchase[];
-  arrivals: CourierArrival[];
-  transfers: BankTransfer[];
-};
-
-export interface TradeApi {
-  getSnapshot(branchId?: string): Promise<TradeSnapshot>;
-  createPurchase(input: Omit<ImportPurchase, "id">, branchId?: string): Promise<ImportPurchase>;
-  createArrival(input: Omit<CourierArrival, "id">, branchId?: string): Promise<CourierArrival>;
-  createTransfer(input: Omit<BankTransfer, "id">, branchId?: string): Promise<BankTransfer>;
-}
-
-export const landedUnitCost = (purchase: Pick<ImportPurchase, "unitPriceUsd" | "usdRateEtb" | "freightEtb">) =>
-  purchase.unitPriceUsd * purchase.usdRateEtb + purchase.freightEtb;
-export const totalImportCost = (purchase: Pick<ImportPurchase, "quantity" | "unitPriceUsd" | "usdRateEtb" | "freightEtb">) =>
-  landedUnitCost(purchase) * purchase.quantity;
-export const transferEquivalent = (amountEtb: number, rate: number) => rate > 0 ? amountEtb / rate : 0;
-const validDate = (date: string) => /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;
-
-export const ethiopianBanks = [
-  "Commercial Bank of Ethiopia (CBE)", "Awash Bank", "Bank of Abyssinia", "Dashen Bank",
-  "Oromia Bank", "Hibret Bank", "Nib International Bank", "Addis International Bank",
-  "Abay Bank", "Amhara Bank", "Bunna Bank", "Zemen Bank", "ZamZam Bank",
-  "Hijra Bank", "Wegagen Bank",
-];
+import type { TradeApi, TradeSnapshot } from "@primestock/domain";
+import { validDate } from "@primestock/domain";
+export { landedUnitCost, totalImportCost, transferEquivalent, ethiopianBanks } from "@primestock/domain";
+export type { ImportPurchase, CourierArrival, BankTransfer, TradeSnapshot, TradeApi } from "@primestock/domain";
 
 export const initialTradeSnapshot: TradeSnapshot = {
   purchases: [

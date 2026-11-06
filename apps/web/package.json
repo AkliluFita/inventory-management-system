@@ -1,0 +1,31 @@
+{
+  "name": "@primestock/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@primestock/domain": "file:../../packages/domain",
+    "@supabase/ssr": "0.10.3",
+    "@supabase/supabase-js": "^2.118.0",
+    "lucide-react": "0.577.0",
+    "next": "16.4.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.2.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "~19.2.2",
+    "@types/react-dom": "~19.2.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.4.5",
+    "tailwindcss": "4.2.2",
+    "typescript": "~6.0.3"
+  }
+}

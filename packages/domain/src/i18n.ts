@@ -1,6 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getLocales } from "expo-localization";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { webTranslations } from "./i18n-web";
 
 export type Language = "en" | "am" | "om";
 export const languages: { code: Language; name: string; nativeName: string }[] = [
@@ -9,7 +7,7 @@ export const languages: { code: Language; name: string; nativeName: string }[] =
   { code: "om", name: "Afaan Oromo", nativeName: "Afaan Oromoo" },
 ];
 
-const translations: Record<string, { am: string; om: string }> = {
+export const translations: Record<string, { am: string; om: string }> = {
   "Inventory, simplified": { am: "የእቃ አስተዳደር ቀላል ሆነ", om: "Bulchiinsi kuusaa salphate" },
   "Keep every item in its place.": { am: "እያንዳንዱን እቃ በቦታው ያስቀምጡ።", om: "Meeshaa hunda bakka isaatti kaa'i." },
   "Track stock, sales, suppliers, and branches from one calm workspace—whatever you sell.": { am: "ምንም ይሸጡ፣ እቃ፣ ሽያጭ፣ አቅራቢዎችና ቅርንጫፎችን በአንድ ቦታ ይከታተሉ።", om: "Meeshaa, gurgurtaa, dhiyeessitootaa fi dameewwan bakka tokko irraa hordofi." },
@@ -396,31 +394,4 @@ const translations: Record<string, { am: string; om: string }> = {
   "View bank transfers": { am: "የባንክ ማስተላለፎችን እይ", om: "Dabarsa baankii ilaali" },
 };
 
-const storageKey = "primestock.language.v1";
-const initialLanguage = (): Language => {
-  const code = getLocales()[0]?.languageCode;
-  return code === "am" || code === "om" ? code : "en";
-};
-
-type LanguageContextValue = { language: Language; setLanguage: (language: Language) => void; t: (text: string) => string };
-const LanguageContext = createContext<LanguageContextValue | null>(null);
-
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, updateLanguage] = useState<Language>(initialLanguage);
-  const selectedByUser = useRef(false);
-  useEffect(() => {
-    let active = true;
-    AsyncStorage.getItem(storageKey).then((saved) => { if (active && !selectedByUser.current && (saved === "en" || saved === "am" || saved === "om")) updateLanguage(saved); }).catch(() => {});
-    return () => { active = false; };
-  }, []);
-  const setLanguage = useCallback((next: Language) => { selectedByUser.current = true; updateLanguage(next); void AsyncStorage.setItem(storageKey, next).catch(() => {}); }, []);
-  const t = useCallback((text: string) => language === "en" ? text : translations[text]?.[language] ?? text, [language]);
-  const value = useMemo(() => ({ language, setLanguage, t }), [language, setLanguage, t]);
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
-}
-
-export function useLanguage() {
-  const value = useContext(LanguageContext);
-  if (!value) throw new Error("useLanguage must be used within LanguageProvider");
-  return value;
-}
+export const translate = (text: string, language: Language) => language === "en" ? text : translations[text]?.[language] ?? webTranslations[text]?.[language] ?? text;
